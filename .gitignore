@@ -1,4 +1,8 @@
 .DS_Store
-
-# Too many conflicts on this file
 package-lock.json
+.idea/blindary.iml
+.idea/modules.xml
+.idea/workspace.xml
+.idea/vcs.xml
+.idea/watcherTasks.xml
+backend/main
