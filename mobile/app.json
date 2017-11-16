@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "sdkVersion": "22.0.0",
+    "ios": {
+      "supportsTablet": true,
+	    "infoPlist": {
+        "NSLocationAlwaysUsageDescription" : "needs gps data.",
+        "NSAppTransportSecurity" : {
+          "NSExceptionDomains": {
+            "127.0.0.1:8080": {
+              "NSIncludesSubdomains": true,
+              "NSTemporaryExceptionAllowsInsecureHTTPLoads": true,
+              "NSTemporaryExceptionMinimumTLSVersion": "TLSv1.1"
+            }
+          },
+          "NSAllowsArbitraryLoads" : true,
+          "NSAllowsArbitraryLoadsForMedia": true,
+          "NSAllowsArbitraryLoadsInWebContent": true,
+          "NSExceptionAllowsInsecureHTTPLoads": true
+        }
+      }
+    }
+  }
+}
