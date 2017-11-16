@@ -1,5 +1,10 @@
 # My project's README
 
+## Spotify
+
+Client ID: 0bd627ea35b2418893459b4ee1568575
+Client Secret: 5f48224bf96e4649939d77c79e931a39
+
 Root Spotify.
   - Main playlist blindtest par défaut (bidji)
 
