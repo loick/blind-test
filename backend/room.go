@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -14,6 +15,10 @@ import (
 /*type rooms struct {
 	rooms []room
 }*/
+
+type roomNumber struct {
+	RoomNumber string `json:"roomNumber"`
+}
 
 type room struct {
 	// forward is a channel that holds incoming messages
@@ -109,16 +114,28 @@ func (r *rooms) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (rooms *rooms) roomNumber(w http.ResponseWriter, r *http.Request) {
-	roomNum := createRoomNumber()
-	a := make(map[string]string)
-	a["roomNumber"] = roomNum
-	res, _ := json.Marshal(a)
-	room := newRoom()
-	room.tracer = trace.New(os.Stdout)
-	rooms.rooms[roomNum] = room
-
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(res))
+
+	if r.Method == "POST" {
+		body, _ := ioutil.ReadAll(r.Body)
+		var roomNmbr roomNumber
+		json.Unmarshal(body, &roomNmbr)
+		if _, ok := rooms.rooms[roomNmbr.RoomNumber]; ok {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	} else {
+		roomNum := createRoomNumber()
+		a := make(map[string]string)
+		a["roomNumber"] = roomNum
+		res, _ := json.Marshal(a)
+		room := newRoom()
+		room.tracer = trace.New(os.Stdout)
+		rooms.rooms[roomNum] = room
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(res))
+	}
 }
