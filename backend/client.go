@@ -17,6 +17,10 @@ type client struct {
 	room *room
 
 	isMaster bool
+
+	roomNumber string
+
+	nickname string
 }
 
 func (c *client) read() {

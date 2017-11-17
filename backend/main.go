@@ -16,7 +16,7 @@ func main() {
 	tokens := newTokens()
 	rtr := mux.NewRouter()
 	//
-	rtr.HandleFunc("/room/{roomNumber}/{isMaster}", rooms.handleHttp)
+	rtr.HandleFunc("/room/{roomNumber}/{isMaster}/{nickname}", rooms.handleHttp)
 	http.HandleFunc("/roomnumber", func(w http.ResponseWriter, r *http.Request) {
 		rooms.roomNumber(w, r)
 	})
@@ -32,7 +32,8 @@ func main() {
 
 	// start the web server
 	log.Println("Starting web server on", *addr)
-	if err := http.ListenAndServe(*addr, nil); err != nil {
+
+	if err := http.ListenAndServeTLS(":8181", "server.crt", "server.key", nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
 }

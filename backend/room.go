@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 
+	"fmt"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -20,6 +22,64 @@ type roomNumber struct {
 type token struct {
 	Token      string `json:"token"`
 	RoomNumber string `json:"roomNumber"`
+}
+
+type spotify struct {
+	Album struct {
+		AlbumType string `json:"album_type"`
+		Artists   []struct {
+			ExternalUrls struct {
+				Spotify string `json:"spotify"`
+			} `json:"external_urls"`
+			Href string `json:"href"`
+			ID   string `json:"id"`
+			Name string `json:"name"`
+			Type string `json:"type"`
+			URI  string `json:"uri"`
+		} `json:"artists"`
+		AvailableMarkets []string `json:"available_markets"`
+		ExternalUrls     struct {
+			Spotify string `json:"spotify"`
+		} `json:"external_urls"`
+		Href   string `json:"href"`
+		ID     string `json:"id"`
+		Images []struct {
+			Height int    `json:"height"`
+			URL    string `json:"url"`
+			Width  int    `json:"width"`
+		} `json:"images"`
+		Name string `json:"name"`
+		Type string `json:"type"`
+		URI  string `json:"uri"`
+	} `json:"album"`
+	Artists []struct {
+		ExternalUrls struct {
+			Spotify string `json:"spotify"`
+		} `json:"external_urls"`
+		Href string `json:"href"`
+		ID   string `json:"id"`
+		Name string `json:"name"`
+		Type string `json:"type"`
+		URI  string `json:"uri"`
+	} `json:"artists"`
+	AvailableMarkets []string `json:"available_markets"`
+	DiscNumber       int      `json:"disc_number"`
+	DurationMs       int      `json:"duration_ms"`
+	Explicit         bool     `json:"explicit"`
+	ExternalIds      struct {
+		Isrc string `json:"isrc"`
+	} `json:"external_ids"`
+	ExternalUrls struct {
+		Spotify string `json:"spotify"`
+	} `json:"external_urls"`
+	Href        string `json:"href"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Popularity  int    `json:"popularity"`
+	PreviewURL  string `json:"preview_url"`
+	TrackNumber int    `json:"track_number"`
+	Type        string `json:"type"`
+	URI         string `json:"uri"`
 }
 
 type room struct {
@@ -39,6 +99,10 @@ type room struct {
 	// tracer will receive trace information of activity
 	// in the room.
 	tracer trace.Tracer
+
+	ladderBoard map[string]int
+
+	artist string
 }
 
 type tokens struct {
@@ -47,17 +111,19 @@ type tokens struct {
 
 type rooms struct {
 	rooms map[string]*room
+	song  map[string]string
 }
 
 // newRoom makes a new room that is ready to
 // go.
 func newRoom() *room {
 	return &room{
-		forward: make(chan []byte),
-		join:    make(chan *client),
-		leave:   make(chan *client),
-		clients: make(map[*client]bool),
-		tracer:  trace.Off(),
+		forward:     make(chan []byte),
+		join:        make(chan *client),
+		leave:       make(chan *client),
+		clients:     make(map[*client]bool),
+		ladderBoard: make(map[string]int),
+		tracer:      trace.Off(),
 	}
 }
 
@@ -70,6 +136,7 @@ func newTokens() *tokens {
 func newRooms() *rooms {
 	return &rooms{
 		make(map[string]*room),
+		make(map[string]string),
 	}
 }
 
@@ -81,6 +148,14 @@ func (rms *rooms) run() {
 				// joining
 				r.clients[client] = true
 				r.tracer.Trace("New client joined")
+				if client.isMaster {
+					preview, artist := sendTrack()
+					r.artist = artist
+					client.send <- []byte(preview)
+					r.tracer.Trace(fmt.Sprintf("Artist: %s, preview: %s", preview, artist))
+				}
+
+				r.ladderBoard[client.nickname] = 0
 			case client := <-r.leave:
 				// leaving
 				delete(r.clients, client)
@@ -89,13 +164,49 @@ func (rms *rooms) run() {
 			case msg := <-r.forward:
 				r.tracer.Trace("Message received: ", string(msg))
 				// forward message to all clients
+				sendLadderBoard := false
 				for client := range r.clients {
 					client.send <- msg
 					r.tracer.Trace(" -- sent to client")
+					if r.artist == string(msg) {
+						r.ladderBoard[r.artist] = r.ladderBoard[r.artist] + 1
+						spew.Dump(r.ladderBoard)
+						sendLadderBoard = true
+					}
+				}
+
+				if sendLadderBoard == true {
+					for client := range r.clients {
+						if client.isMaster == true {
+							jsonify, _ := json.Marshal(r.ladderBoard)
+							client.send <- jsonify
+						}
+					}
 				}
 			}
 		}
 	}
+}
+
+func sendTrack() (string, string) {
+	trackId := "2Fa5PbnEZixzN910CloiiS"
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.spotify.com/v1/tracks/%s", trackId), nil)
+	req.Header.Set("Authorization", "Bearer BQARMvpbwfBI318YIudCmWF46jh5QeHledzLdEW_jYfJrX-Fg3ihV_Nc2h7MQGU7PPYROHlNVerJEtZ4XwbwbupVwIDA2j866xqNkyZI7jd6kzeaie7fZp80VFErtWXudOUdxCnBIwaU3NQyiakz_rM")
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Sprintf("err %s", err)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Sprintf("err %s", err)
+	}
+	var spotify spotify
+	json.Unmarshal(body, &spotify)
+
+	return spotify.PreviewURL, spotify.Artists[0].Name
 }
 
 const (
@@ -112,11 +223,11 @@ var upgrader = &websocket.Upgrader{
 }
 
 func (r *rooms) handleHttp(w http.ResponseWriter, req *http.Request) {
-	spew.Dump("la")
 	params := mux.Vars(req)
 	roomNumber := params["roomNumber"]
 	isMaster := params["isMaster"]
-
+	nickname := params["nickname"]
+	log.Printf(fmt.Sprintf("roomNumber: %s, isMaster: %s, nickname: %s", roomNumber, isMaster, nickname))
 	var isMasterBool bool
 	if isMaster == "1" {
 		isMasterBool = true
@@ -137,10 +248,12 @@ func (r *rooms) handleHttp(w http.ResponseWriter, req *http.Request) {
 	}
 
 	client := &client{
-		socket:   socket,
-		send:     make(chan []byte, messageBufferSize),
-		room:     room,
-		isMaster: isMasterBool,
+		socket:     socket,
+		send:       make(chan []byte, messageBufferSize),
+		room:       room,
+		isMaster:   isMasterBool,
+		roomNumber: roomNumber,
+		nickname:   nickname,
 	}
 	room.join <- client
 	defer func() { room.leave <- client }()
