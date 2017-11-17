@@ -1,16 +1,34 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { StyleSheet, Text, TextInput, View, TouchableOpacity } from 'react-native'
-import { API_URL } from '../config'
+import { API_URL, SOCKET_URL } from '../config'
 import { addUserInfos } from '../actions/me'
 
 export class Play extends Component {
+  
+  componentDidMount() {
+    this.ws = new WebSocket(`${SOCKET_URL}/${this.props.roomNumber}/0`)
+    this.ws.onopen = () => { this.setState({ connected: true }) } 
+    this.ws.onerror = (e) => {
+      console.log(e.message)
+    };
+  }
+
   state = {
+    connected: false,
     word: '',
   }
 
   updateWord = (word) => {
     this.setState((prevState) => ({ word }))
+  }
+
+  onSubmit = () => {
+    console.log('here 1')
+    if (this.state.connected) {
+      console.log('here 2')
+      this.ws.send(JSON.stringify([{ nickname: this.state.nickname, artist: this.state.word }]))
+    }
   }
 
   render() {

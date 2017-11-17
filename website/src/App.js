@@ -9,7 +9,7 @@ import {
   TableRow,
   TableRowColumn,
 } from 'material-ui/Table'
-import { API_URL } from './config'
+import { API_URL, SOCKET_URL } from './config'
 import spotify from './spotify.svg'
 
 const serialize = (obj) => {
@@ -28,11 +28,14 @@ const options = {
 }
 
 class App extends Component {
+  ws = null
+
   state = {
     access_token: null,
     expires_in: null,
     token_type: null,
     roomNumber: null,
+    answers: [],
   }
 
   componentDidMount() {
@@ -45,12 +48,40 @@ class App extends Component {
     }
   }
 
+  componentDidUpdate() {
+    if (!this.ws && this.state.roomNumber) {
+      this.ws = new WebSocket(`${SOCKET_URL}${this.state.roomNumber}/1`)
+      this.ws.onmessage = this.onReceiveAnswer
+    }
+  }
+
+  onReceiveAnswer(event) {
+    console.log(event)
+  }
+
   async getRoom() {
     try {
       const createRoom = await fetch(`${API_URL}/roomnumber`, { method: 'GET' })
       const createRoomJson = await createRoom.json()
       const { roomNumber } = createRoomJson
       this.setState({ roomNumber })
+      this.sendToken()
+    } catch(e) {
+      console.log(e)
+    }
+  }
+
+  async sendToken() {
+    try {
+      const sendToken = await fetch(`${API_URL}/tokens`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            roomNumber: this.state.roomNumber,
+            token: this.state.access_token,
+          })
+        }
+      )
     } catch(e) {
       console.log(e)
     }
@@ -61,7 +92,7 @@ class App extends Component {
       <MuiThemeProvider>
         <div>
           <AppBar
-            title={`BLINDARY ${this.state.roomNumber && `(${this.state.roomNumber})`}`}
+            title={`BLINDARY ${this.state.roomNumber ? `(${this.state.roomNumber})` : ''}`}
             iconElementLeft={<a href={`https://accounts.spotify.com/authorize?${serialize(options)}`}><img fill="#FFF" src={spotify} /></a>}
           />
           <Table>

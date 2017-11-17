@@ -1,2 +1,3 @@
-export const API_URL = 'http://f86b92f5.ngrok.io'
-export const SOCKET_URL = 'ws://host.com/path'
+export const URL = '67bec779.ngrok.io'
+export const API_URL = `http://${URL}`
+export const SOCKET_URL = `ws://${URL}/room/`

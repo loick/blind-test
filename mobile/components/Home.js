@@ -4,6 +4,7 @@ import { StyleSheet, Text, TextInput, ScrollView, View, TouchableOpacity } from 
 import { API_URL } from '../config'
 import { addUserInfos } from '../actions/me'
 
+
 export class Home extends Component {
   state = {
     nickname: null,
@@ -16,7 +17,9 @@ export class Home extends Component {
     try {
       // Valid the room
       const response = await fetch(`${API_URL}/roomnumber`, { method: 'POST', body: JSON.stringify({ roomNumber: this.state.roomNumber }) })
-      this.props.dispatch(addUserInfos(this.state))
+      if (response.status === 200) {
+        this.props.dispatch(addUserInfos(this.state))
+      }
     } catch(error) {
       this.setState({ error })
     }
