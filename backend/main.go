@@ -33,7 +33,7 @@ func main() {
 	// start the web server
 	log.Println("Starting web server on", *addr)
 
-	if err := http.ListenAndServeTLS(":8181", "server.crt", "server.key", nil); err != nil {
+	if err := http.ListenAndServeTLS(":8181", "/etc/letsencrypt/live/themeerkat.xyz/chain.pem", "/etc/letsencrypt/live/themeerkat.xyz/privkey.pem", nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
 }
