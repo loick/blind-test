@@ -14,13 +14,8 @@ export class Home extends Component {
   onSubmit = async () => {
     this.setState({ error: null })
     try {
-      // Get a room
-      const createRoom = await fetch(`${API_URL}/roomnumber`, { method: 'GET' })
-      const createRoomJson = await createRoom.json()
-      const { roomNumber } = createRoomJson
-
       // Valid the room
-      const response = await fetch(`${API_URL}/roomnumber`, { method: 'POST', body: JSON.stringify({ roomNumber }) })
+      const response = await fetch(`${API_URL}/roomnumber`, { method: 'POST', body: JSON.stringify({ roomNumber: this.state.roomNumber }) })
       this.props.dispatch(addUserInfos(this.state))
     } catch(error) {
       this.setState({ error })
@@ -33,7 +28,7 @@ export class Home extends Component {
         <Text style={styles.title}>BLINDARY</Text>
         <View style={styles.inputContainer}>
           <TextInput style={styles.input} placeholder="Nickname" onChangeText={(nickname) => this.setState({ nickname })} />
-          <TextInput style={styles.input} autoCapitalize="characters" onChangeText={(roomNumber) => this.setState({ roomNumber })} maxLength={5} autoCorrect={false} placeholder="Room number" />
+          <TextInput style={styles.input} autoCapitalize="characters" onChangeText={(roomNumber) => this.setState({ roomNumber })} maxLength={6} autoCorrect={false} placeholder="Room number" />
         </View>
         <TouchableOpacity style={styles.submitButtonContainer} title="Let's play" onPress={this.onSubmit}>
           <Text style={styles.submitButton}>Play</Text>

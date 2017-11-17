@@ -9,35 +9,61 @@ import {
   TableRow,
   TableRowColumn,
 } from 'material-ui/Table'
+import { API_URL } from './config'
+import spotify from './spotify.svg'
 
 const serialize = (obj) => {
   var str = [];
   for(var p in obj)
     if (obj.hasOwnProperty(p)) {
-      str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+      str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]))
     }
-  return str.join("&");
+  return str.join("&")
+}
+
+const options = {
+  client_id: '0bd627ea35b2418893459b4ee1568575',
+  response_type: 'token',
+  redirect_uri: window.location.origin + '/spotify-connect',
 }
 
 class App extends Component {
-  componentDidMount() {
-    const options = {
-      client_id: '0bd627ea35b2418893459b4ee1568575',
-      response_type: 'token',
-      redirect_uri: 'http://127.0.0.1:3000',
-    }
+  state = {
+    access_token: null,
+    expires_in: null,
+    token_type: null,
+    roomNumber: null,
+  }
 
-    fetch(`https://accounts.spotify.com/authorize?${serialize(options)}`)
-      .then(response => response.json())
-      .then(response => console.log(response))
-      .catch(error => console.log(error))
+  componentDidMount() {
+    if (window.location.hash) {
+      const hash = window.location.hash.substring(1, window.location.hash.length)
+      this.setState(hash.split('&').reduce((acc, curr) => {
+        const [key, value] = curr.split('=')
+        return ({ ...acc, [key]: value })
+      }, {}), this.getRoom)
+    }
+  }
+
+  async getRoom() {
+    try {
+      const createRoom = await fetch(`${API_URL}/roomnumber`, { method: 'GET' })
+      const createRoomJson = await createRoom.json()
+      const { roomNumber } = createRoomJson
+      this.setState({ roomNumber })
+    } catch(e) {
+      console.log(e)
+    }
   }
 
   render() {
     return (
       <MuiThemeProvider>
         <div>
-          <AppBar title="BLINDARY" iconClassNameLeft="none" />
+          <AppBar
+            title={`BLINDARY ${this.state.roomNumber && `(${this.state.roomNumber})`}`}
+            iconElementLeft={<a href={`https://accounts.spotify.com/authorize?${serialize(options)}`}><img fill="#FFF" src={spotify} /></a>}
+          />
           <Table>
             <TableHeader displaySelectAll={false}>
               <TableRow>
