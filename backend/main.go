@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	var addr = flag.String("addr", ":8181", "The addr of the application.")
+	var addr = flag.String("addr", ":2015", "The addr of the application.")
 	flag.Parse() // parse the flags
 
 	rooms := newRooms()
