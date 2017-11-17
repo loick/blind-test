@@ -15,6 +15,8 @@ type client struct {
 
 	// room is the room this client is chatting in.
 	room *room
+
+	isMaster bool
 }
 
 func (c *client) read() {

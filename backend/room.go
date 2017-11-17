@@ -5,18 +5,20 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-
 	"os"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/matryer/goblueprints/chapter1/trace"
 )
 
-/*type rooms struct {
-	rooms []room
-}*/
-
 type roomNumber struct {
+	RoomNumber string `json:"roomNumber"`
+}
+
+type token struct {
+	Token      string `json:"token"`
 	RoomNumber string `json:"roomNumber"`
 }
 
@@ -39,6 +41,10 @@ type room struct {
 	tracer trace.Tracer
 }
 
+type tokens struct {
+	tokens map[string]string
+}
+
 type rooms struct {
 	rooms map[string]*room
 }
@@ -52,6 +58,12 @@ func newRoom() *room {
 		leave:   make(chan *client),
 		clients: make(map[*client]bool),
 		tracer:  trace.Off(),
+	}
+}
+
+func newTokens() *tokens {
+	return &tokens{
+		tokens: make(map[string]string),
 	}
 }
 
@@ -91,21 +103,44 @@ const (
 	messageBufferSize = 256
 )
 
-var upgrader = &websocket.Upgrader{ReadBufferSize: socketBufferSize, WriteBufferSize: socketBufferSize}
+var upgrader = &websocket.Upgrader{
+	ReadBufferSize:  socketBufferSize,
+	WriteBufferSize: socketBufferSize,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 
-func (r *rooms) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (r *rooms) handleHttp(w http.ResponseWriter, req *http.Request) {
+	spew.Dump("la")
+	params := mux.Vars(req)
+	roomNumber := params["roomNumber"]
+	isMaster := params["isMaster"]
+
+	var isMasterBool bool
+	if isMaster == "1" {
+		isMasterBool = true
+	} else {
+		isMasterBool = false
+	}
+
 	socket, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
 		log.Printf("ServeHTTP:", err)
 		return
 	}
 
-	room := r.rooms["toto"]
+	room, ok := r.rooms[roomNumber]
+	if !ok {
+		log.Printf("sortie")
+		return
+	}
 
 	client := &client{
-		socket: socket,
-		send:   make(chan []byte, messageBufferSize),
-		room:   room,
+		socket:   socket,
+		send:     make(chan []byte, messageBufferSize),
+		room:     room,
+		isMaster: isMasterBool,
 	}
 	room.join <- client
 	defer func() { room.leave <- client }()
@@ -138,4 +173,21 @@ func (rooms *rooms) roomNumber(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(res))
 	}
+}
+
+func (tokens *tokens) addTokens(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	if r.Method == "POST" {
+		body, _ := ioutil.ReadAll(r.Body)
+		var token token
+		json.Unmarshal(body, &token)
+		tokens.tokens[token.RoomNumber] = token.Token
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	w.WriteHeader(http.StatusBadRequest)
+
 }

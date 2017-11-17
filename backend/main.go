@@ -4,18 +4,28 @@ import (
 	"flag"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
-	var addr = flag.String("addr", ":8080", "The addr of the application.")
+	var addr = flag.String("addr", ":8181", "The addr of the application.")
 	flag.Parse() // parse the flags
 
 	rooms := newRooms()
-
-	http.Handle("/room", rooms)
+	tokens := newTokens()
+	rtr := mux.NewRouter()
+	//
+	rtr.HandleFunc("/room/{roomNumber}/{isMaster}", rooms.handleHttp)
 	http.HandleFunc("/roomnumber", func(w http.ResponseWriter, r *http.Request) {
 		rooms.roomNumber(w, r)
 	})
+
+	http.HandleFunc("/tokens", func(w http.ResponseWriter, r *http.Request) {
+		tokens.addTokens(w, r)
+	})
+
+	http.Handle("/", rtr)
 
 	// get the room going
 	go rooms.run()
