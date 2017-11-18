@@ -193,7 +193,7 @@ func sendTrack() (string, string) {
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.spotify.com/v1/tracks/%s", trackId), nil)
-	req.Header.Set("Authorization", "Bearer BQC3QXAsKeL9I8_CIokazrkgYauGtM7bbf0SHNfwzls7saCTtGFSjZ-eAiTOf8H3Zb7duyHheWUp2lZknOBZjMpFt7okb__d1NbV-CqJsC0ZqvQlC0-vqxApwoMdQniPBi1JKmlWJs4Auh9WrQldF34")
+	req.Header.Set("Authorization", "Bearer BQCXp9GQshkKoFvwsmCCh_HbDrgdRWheoGGxxmmVTn__S663gjSARfJ42MYPajJiT4Y3DZaq3UpXWgTFjTzJ65x05ZTUi6AsjPdxkj6-acNZ3X2N0FnbcMHKA_XyoMcAdRND7rkTZ_Gckb6RkZc2VpE")
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Sprintf("err %s", err)
