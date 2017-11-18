@@ -223,6 +223,8 @@ var upgrader = &websocket.Upgrader{
 }
 
 func (r *rooms) handleHttp(w http.ResponseWriter, req *http.Request) {
+	spew.Dump(w)
+	spew.Dump(req)
 	params := mux.Vars(req)
 	roomNumber := params["roomNumber"]
 	isMaster := params["isMaster"]

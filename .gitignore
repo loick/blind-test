@@ -6,3 +6,4 @@ package-lock.json
 .idea/vcs.xml
 .idea/watcherTasks.xml
 backend/main
+backend/.idea/
